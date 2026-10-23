@@ -7,71 +7,46 @@ Agent Chat UI is a Next.js application which enables chatting with any LangGraph
 
 ## Setup
 
-> [!TIP]
-> Don't want to run the app locally? Use the deployed site here: [agentchat.vercel.app](https://agentchat.vercel.app)!
-
-First, clone the repository, or run the [`npx` command](https://www.npmjs.com/package/create-agent-chat-app):
-
-```bash
-npx create-agent-chat-app
-```
-
-or
-
-```bash
-git clone https://github.com/langchain-ai/agent-chat-ui.git
-
-cd agent-chat-ui
-```
-
-Install dependencies:
+From this repository's `frontend/` directory:
 
 ```bash
 pnpm install
-```
-
-Run the app:
-
-```bash
 pnpm dev
 ```
 
-The app will be available at `http://localhost:3000`.
+Configure Supabase and Google first using [the setup guide](../docs/google-auth.md).
+The app runs at `http://localhost:3000` and expects Agent Server at the configured
+`NEXT_PUBLIC_API_URL`. This fork's authentication is configured locally; the
+upstream hosted Agent Chat UI does not contain this Google sign-in integration.
 
 ## Usage
 
-Once the app is running (or if using the deployed site), you'll be prompted to enter:
+This fork uses **Google sign-in through Supabase Auth**. Complete the
+[external setup guide](../docs/google-auth.md), start the backend, and click
+**Sign in with Google**. No LangSmith key or local test token is needed.
 
-- **Deployment URL**: The URL of the LangGraph server you want to chat with. This can be a production or development URL.
-- **Assistant/Graph ID**: The name of the graph, or ID of the assistant to use when fetching, and submitting runs via the chat interface.
-- **LangSmith API Key**: (only required for connecting to deployed LangGraph servers) Your LangSmith API key to use when authenticating requests sent to LangGraph servers.
-- **Built with Agent Builder**: Toggle this on for Agent Builder deployments. This automatically sets the auth scheme to `langsmith-api-key`.
+The UI displays your email and provides a sign-out button. Sessions refresh
+automatically. History is private to the verified Supabase user ID; signing out
+or switching accounts clears mounted chat state. The backend enforces isolation.
 
-After entering these values, click `Continue`. You'll then be redirected to a chat interface where you can start chatting with your LangGraph server.
+Use `?assistantId=agent` or `?assistantId=deep_agent` to compare the two agents.
+The API destination is fixed by environment configuration, not URL parameters.
 
 ## Environment Variables
 
-You can bypass the initial setup form by setting the following environment variables:
+Set these in `frontend/.env.local` and restart `pnpm dev`:
 
-```bash
+```dotenv
 NEXT_PUBLIC_API_URL=http://localhost:2024
-NEXT_PUBLIC_ASSISTANT_ID=agent
-NEXT_PUBLIC_AUTH_SCHEME=
+NEXT_PUBLIC_ASSISTANT_ID=deep_agent
+NEXT_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=YOUR_PUBLISHABLE_KEY
 ```
 
-> [!NOTE]
-> If you are connecting to a LangSmith Agent Builder deployment, set `NEXT_PUBLIC_AUTH_SCHEME=langsmith-api-key`.
-
-> [!TIP]
-> If you want to connect to a production LangGraph server, read the [Going to Production](#going-to-production) section.
-
-To use these variables:
-
-1. Copy the `.env.example` file to a new file named `.env`
-2. Fill in the values in the `.env` file
-3. Restart the application
-
-When these environment variables are set, the application will use them instead of showing the setup form.
+These are public configuration values. Never put a Supabase secret/service-role
+key or Google client secret in a `NEXT_PUBLIC_` variable. The Google secret goes
+in Supabase's provider settings. This client uses PKCE with SDK-managed browser
+session storage and returns to `/` after OAuth; no callback route is required.
 
 ## Hiding Messages in the Chat
 
@@ -189,64 +164,8 @@ export function Writer(props: {
 
 ## Going to Production
 
-Once you're ready to go to production, you'll need to update how you connect, and authenticate requests to your deployment. By default, the Agent Chat UI is setup for local development, and connects to your LangGraph server directly from the client. This is not possible if you want to go to production, because it requires every user to have their own LangSmith API key, and set the LangGraph configuration themselves.
-
-### Production Setup
-
-To productionize the Agent Chat UI, you'll need to pick one of two ways to authenticate requests to your LangGraph server. Below, I'll outline the two options:
-
-### Quickstart - API Passthrough
-
-The quickest way to productionize the Agent Chat UI is to use the [API Passthrough](https://github.com/bracesproul/langgraph-nextjs-api-passthrough) package ([NPM link here](https://www.npmjs.com/package/langgraph-nextjs-api-passthrough)). This package provides a simple way to proxy requests to your LangGraph server, attaching your LangSmith API key on the server so your users never need one. It does not authenticate the callers of that proxy for you — see [Authenticating the API Passthrough](#authenticating-the-api-passthrough) below, which you should set up before deploying.
-
-This repository already contains the proxy route itself. The only configuration you need to do is set the proper environment variables.
-
-```bash
-NEXT_PUBLIC_ASSISTANT_ID="agent"
-# This should be the deployment URL of your LangGraph server
-LANGGRAPH_API_URL="https://my-agent.default.us.langgraph.app"
-# This should be the URL of your website + "/api". This is how you connect to the API proxy
-NEXT_PUBLIC_API_URL="https://my-website.com/api"
-# Your LangSmith API key which is injected into requests inside the API proxy
-LANGSMITH_API_KEY="lsv2_..."
-```
-
-Let's cover what each of these environment variables does:
-
-- `NEXT_PUBLIC_ASSISTANT_ID`: The ID of the assistant you want to use when fetching, and submitting runs via the chat interface. This still needs the `NEXT_PUBLIC_` prefix, since it's not a secret, and we use it on the client when submitting requests.
-- `LANGGRAPH_API_URL`: The URL of your LangGraph server. This should be the production deployment URL.
-- `NEXT_PUBLIC_API_URL`: The URL of your website + `/api`. This is how you connect to the API proxy. For the [Agent Chat demo](https://agentchat.vercel.app), this would be set as `https://agentchat.vercel.app/api`. You should set this to whatever your production URL is.
-- `LANGSMITH_API_KEY`: Your LangSmith API key to use when authenticating requests sent to LangGraph servers. Once again, do _not_ prefix this with `NEXT_PUBLIC_` since it's a secret, and is only used on the server when the API proxy injects it into the request to your deployed LangGraph server.
-
-For in depth documentation, consult the [LangGraph Next.js API Passthrough](https://www.npmjs.com/package/langgraph-nextjs-api-passthrough) docs.
-
-### Authenticating the API Passthrough
-
-> [!WARNING]
-> The API passthrough does not authenticate your callers. If you deploy this repository with `LANGGRAPH_API_URL` and `LANGSMITH_API_KEY` set and no gate of your own, anyone who reaches your deployment URL can read, overwrite, and delete every thread and store item in your LangGraph deployment, and start runs billed to your LangSmith account.
-
-Before you deploy, set up [custom authentication](#advanced-setup---custom-authentication) on your LangGraph deployment and delete `src/app/api/[..._path]/route.ts`, so your LangSmith key never sits behind a public route.
-
-### Advanced Setup - Custom Authentication
-
-Custom authentication in your LangGraph deployment is an advanced, and more robust way of authenticating requests to your LangGraph server. Using custom authentication, you can allow requests to be made from the client, without the need for a LangSmith API key. Additionally, you can specify custom access controls on requests.
-
-To set this up in your LangGraph deployment, please read the LangGraph custom authentication docs for [Python](https://langchain-ai.github.io/langgraph/tutorials/auth/getting_started/), and [TypeScript here](https://langchain-ai.github.io/langgraphjs/how-tos/auth/custom_auth/).
-
-Once you've set it up on your deployment, you should make the following changes to the Agent Chat UI:
-
-1. Configure any additional API requests to fetch the authentication token from your LangGraph deployment which will be used to authenticate requests from the client.
-2. Set the `NEXT_PUBLIC_API_URL` environment variable to your production LangGraph deployment URL.
-3. Set the `NEXT_PUBLIC_ASSISTANT_ID` environment variable to the ID of the assistant you want to use when fetching, and submitting runs via the chat interface.
-4. Modify the [`useTypedStream`](src/providers/Stream.tsx) (extension of `useStream`) hook to pass your authentication token through headers to the LangGraph server:
-
-```tsx
-const streamValue = useTypedStream({
-  apiUrl: process.env.NEXT_PUBLIC_API_URL,
-  assistantId: process.env.NEXT_PUBLIC_ASSISTANT_ID,
-  // ... other fields
-  defaultHeaders: {
-    Authentication: `Bearer ${addYourTokenHere}`, // this is where you would pass your authentication token
-  },
-});
-```
+The current app connects directly to Agent Server using the signed-in user's
+Supabase access token. The upstream shared-LangSmith-key API passthrough has
+been removed. Use HTTPS and configure exact frontend origins and OAuth redirects
+for the deployed URLs. Keep Agent Server's custom auth enabled and use durable
+server storage for production histories. See [authentication setup](../docs/google-auth.md).

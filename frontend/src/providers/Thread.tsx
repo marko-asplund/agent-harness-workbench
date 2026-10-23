@@ -1,6 +1,5 @@
 import { validate } from "uuid";
-import { getApiKey } from "@/lib/api-key";
-import { resolveApiUrl } from "@/lib/resolve-api-url";
+import { useAuth } from "@/lib/auth-context";
 import { Thread } from "@langchain/langgraph-sdk";
 import { useQueryState } from "nuqs";
 import {
@@ -35,30 +34,20 @@ function getThreadSearchMetadata(
 }
 
 export function ThreadProvider({ children }: { children: ReactNode }) {
+  const { accessToken } = useAuth();
   const envApiUrl: string | undefined = process.env.NEXT_PUBLIC_API_URL;
   const envAssistantId: string | undefined =
     process.env.NEXT_PUBLIC_ASSISTANT_ID;
-  const envAuthScheme: string | undefined = process.env.NEXT_PUBLIC_AUTH_SCHEME;
 
-  const [apiUrl] = useQueryState("apiUrl", {
-    defaultValue: envApiUrl || "",
-  });
   const [assistantId] = useQueryState("assistantId");
-  const [authScheme] = useQueryState("authScheme", {
-    defaultValue: envAuthScheme || "",
-  });
   const [threads, setThreads] = useState<Thread[]>([]);
   const [threadsLoading, setThreadsLoading] = useState(false);
 
   const getThreads = useCallback(async (): Promise<Thread[]> => {
-    const finalApiUrl = resolveApiUrl(apiUrl, envApiUrl);
+    const finalApiUrl = envApiUrl;
     const resolvedAssistantId = assistantId || envAssistantId;
     if (!finalApiUrl || !resolvedAssistantId) return [];
-    const client = createClient(
-      finalApiUrl,
-      getApiKey(finalApiUrl) ?? undefined,
-      authScheme || undefined,
-    );
+    const client = createClient(finalApiUrl, accessToken);
 
     const threads = await client.threads.search({
       metadata: {
@@ -68,7 +57,7 @@ export function ThreadProvider({ children }: { children: ReactNode }) {
     });
 
     return threads;
-  }, [apiUrl, envApiUrl, assistantId, authScheme, envAssistantId]);
+  }, [envApiUrl, assistantId, accessToken, envAssistantId]);
 
   const value = {
     getThreads,
