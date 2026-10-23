@@ -18,3 +18,7 @@ outputs/
 # Local IDE configuration
 .idea/
 *.iml
+
+# Personal coding-agent skills (not application source)
+.agents/skills/
+skills-lock.json
