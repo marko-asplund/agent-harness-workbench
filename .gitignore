@@ -1,0 +1,20 @@
+# Secrets and environments
+.env
+.env.local
+.env.*.local
+**/.venv/
+**/node_modules/
+**/.next/
+**/__pycache__/
+**/.pytest_cache/
+**/.ruff_cache/
+*.pyc
+
+# Local outputs and development traces
+logs/
+outputs/
+.langgraph_api/
+
+# Local IDE configuration
+.idea/
+*.iml
