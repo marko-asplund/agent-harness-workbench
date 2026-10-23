@@ -12,10 +12,12 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "deepagents" },
+    { name = "httpx" },
     { name = "langchain" },
     { name = "langchain-mistralai" },
     { name = "langgraph" },
     { name = "langgraph-cli", extra = ["inmem"] },
+    { name = "langgraph-sdk" },
     { name = "python-dotenv" },
 ]
 
@@ -28,10 +30,12 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "deepagents", specifier = ">=0.7.31" },
+    { name = "httpx", specifier = ">=0.28.1" },
     { name = "langchain", specifier = ">=1.4.7" },
     { name = "langchain-mistralai", specifier = ">=1.1.6" },
     { name = "langgraph", specifier = ">=1.2.16" },
     { name = "langgraph-cli", extras = ["inmem"], specifier = ">=0.4.37" },
+    { name = "langgraph-sdk", specifier = ">=0.4.8" },
     { name = "python-dotenv", specifier = ">=1.2.4" },
 ]
 

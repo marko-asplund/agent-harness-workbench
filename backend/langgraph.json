@@ -4,5 +4,9 @@
     "agent": "./app/agent.py:agent",
     "deep_agent": "./app/deep_agent.py:agent"
   },
-  "env": ".env"
+  "env": ".env",
+  "auth": {
+    "path": "./app/auth.py:auth",
+    "disable_studio_auth": true
+  }
 }

@@ -39,6 +39,37 @@ Then run `pnpm install` and `pnpm dev` from `frontend/`, and open
 `http://localhost:3000`. No LangSmith API key is needed for local chat.
 The Mistral key stays in the backend. Both servers must be running.
 
+## Google sign-in and private history
+
+Follow [Google/Supabase setup](../docs/google-auth.md) before chatting. The UI
+uses Supabase Auth with Google's OAuth provider and sends Supabase access tokens
+as `Authorization: Bearer ...` on streaming, history, and state requests.
+
+`app/auth.py` verifies tokens with the configured Supabase project's user
+endpoint. Its stable user ID owns each thread. Thread access rules remain
+server-side: other users cannot list, read, update, delete, or run your threads.
+Graph definitions are shared and read-only; stores and other resources are denied.
+The old fixed tokens are no longer accepted. Old unowned and Alice/Bob demo
+threads are not automatically migrated to Google accounts.
+
+Run unit tests without external services:
+
+```bash
+uv run pytest -q
+```
+
+To run integration isolation tests against your server, supply fresh Supabase
+access tokens for two different users in `ISOLATION_TOKEN_A` and
+`ISOLATION_TOKEN_B`, then run:
+
+```bash
+ISOLATION_API_URL=http://localhost:2024 uv run pytest -q tests/test_isolation.py
+```
+
+The integration tests skip if those variables are absent. They create and delete
+test threads without making model calls. Use Supabase access tokens, not Google
+provider tokens. Keep tokens out of Git and shared command transcripts.
+
 To compare approaches, open `http://localhost:3000/?assistantId=agent` for
 LangChain or `http://localhost:3000/?assistantId=deep_agent` for Deep Agents.
 Start a new conversation when switching agents. The UI manages thread IDs;

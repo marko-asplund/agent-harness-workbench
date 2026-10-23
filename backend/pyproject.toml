@@ -9,10 +9,12 @@ authors = [
 requires-python = ">=3.12"
 dependencies = [
     "deepagents>=0.7.31",
+    "httpx>=0.28.1",
     "langchain>=1.4.7",
     "langchain-mistralai>=1.1.6",
     "langgraph>=1.2.16",
     "langgraph-cli[inmem]>=0.4.37",
+    "langgraph-sdk>=0.4.8",
     "python-dotenv>=1.2.4",
 ]
 
