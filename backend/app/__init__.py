@@ -1,2 +1,1 @@
-def main() -> None:
-    print("Hello from agent-harness-workbench!")
+"""Agent implementations and authentication for Agent Harness Workbench."""

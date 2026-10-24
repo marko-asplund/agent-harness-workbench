@@ -1,10 +1,13 @@
 {
-  "name": "agent-chat-ui",
-  "readme": "https://github.com/langchain-ai/agent-chat-ui/blob/main/README.md",
-  "homepage": "https://agentchat.vercel.app",
+  "name": "agent-harness-workbench-frontend",
+  "description": "Chat interface for configurable agents and human–AI interaction research",
+  "license": "MIT",
+  "readme": "README.md",
+  "homepage": "https://github.com/marko-asplund/agent-harness-workbench#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/langchain-ai/agent-chat-ui.git"
+    "url": "git+https://github.com/marko-asplund/agent-harness-workbench.git",
+    "directory": "frontend"
   },
   "private": true,
   "version": "0.0.0",

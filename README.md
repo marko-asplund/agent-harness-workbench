@@ -87,3 +87,10 @@ history, and optional LangSmith tracing. The dedicated research archive is
 
 Additional references cover [frontend customization](docs/frontend-customization.md)
 and [frontend upstream provenance](docs/frontend-upstream.md).
+
+## License
+
+Licensed under the [MIT License](LICENSE), matching the upstream Agent Chat UI.
+The frontend includes code by Brace Sproul; its original copyright and license
+are preserved in [frontend/LICENSE](frontend/LICENSE). See
+[upstream provenance](docs/frontend-upstream.md) for the imported revision.
