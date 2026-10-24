@@ -17,6 +17,15 @@ This project puts the harness and interface under the researcher's control. The
 aim is to support experiments that can vary agent behavior and interaction design
 while retaining enough data to reconstruct and analyse participant–agent exchanges.
 
+[![Chat interface with conversation history and a formatted agent response](docs/images/agent-harness-chat.png)](docs/images/agent-harness-chat.png)
+
+*The chat interface, showing conversation history and a formatted response.*
+
+| LangSmith trace overview | Expanded trace |
+| --- | --- |
+| [![Overview of recorded agent traces and response latency](docs/images/agent-harness-trace1.png)](docs/images/agent-harness-trace1.png) | [![Expanded trace showing model calls, planning tools, and message content](docs/images/agent-harness-trace2.png)](docs/images/agent-harness-trace2.png) |
+| Optional tracing of agent runs and latency. | Model calls, tool activity, and message content. |
+
 ## Architecture
 
 The application has two main layers:
