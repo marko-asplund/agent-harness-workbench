@@ -1,82 +1,86 @@
-# Agent backend
+# Backend
 
-From `backend/`, install dependencies and configure Mistral:
+Python agents served through LangGraph Agent Server. The backend runs model
+calls, maintains conversation state, and enforces per-user thread access.
+
+## Prerequisites and configuration
+
+Use Python 3.12 and uv. Complete the required Mistral, Supabase, and Google
+configuration in the [shared setup guide](../docs/setup.md).
+
+From `backend/`, install dependencies and create the environment file on first
+setup. Preserve an existing `.env` rather than replacing it:
 
 ```bash
 uv sync
 cp .env.example .env
 ```
 
-Set `MISTRAL_API_KEY` in `.env`. `CHAT_MODEL` selects the Mistral model for
-both agents (defaults to `mistral-large-latest` if unset).
+Configure these values in `.env`:
 
-Start Agent Server:
+| Variable | Purpose |
+| --- | --- |
+| `MISTRAL_API_KEY` | Backend credential for model requests |
+| `CHAT_MODEL` | Mistral model for both agents; the example uses `mistral-small-latest` |
+| `SUPABASE_URL` | Project URL, matching the frontend's Supabase project |
+| `SUPABASE_PUBLISHABLE_KEY` | Project publishable key used when validating user sessions |
+| `LANGSMITH_TRACING` | Optional tracing; disabled in the example |
+
+Optional LangSmith keys, project selection, and endpoints are covered in the
+[tracing setup](../docs/setup.md#optional-langsmith-tracing).
+
+## Run
 
 ```bash
 uv run langgraph dev --no-browser
 ```
 
-The API runs at `http://localhost:2024`. `langgraph.json` registers two graphs:
+The API runs at `http://localhost:2024`. Stop it with Ctrl+C. Restart after
+changing environment or server configuration.
 
-- `deep_agent`: Deep Agents with built-in context compression and opt-in planning.
-- `agent`: LangChain with explicit summarization middleware.
+`langgraph.json` exposes two graph IDs:
 
-Both exported graphs use server-managed conversation persistence. Neither runs
-the demo on import. The development server stores local state in the ignored
-`.langgraph_api/` directory; this is not a production database.
+| Graph ID | Implementation |
+| --- | --- |
+| `deep_agent` | Deep Agents with built-in context compression and opt-in planning |
+| `agent` | LangChain with explicit summarization middleware |
 
-## Agent Chat UI
+Both exported agents use server-managed checkpointing. The development server
+stores state in the ignored `.langgraph_api/` directory. This is development
+storage, not a production database or the planned research archive.
 
-In `frontend/`, copy `.env.example` to `.env.local` if you have not already
-configured the UI. Set:
+## Authentication and isolation
 
-```dotenv
-NEXT_PUBLIC_API_URL=http://localhost:2024
-NEXT_PUBLIC_ASSISTANT_ID=deep_agent
-```
+`app/auth.py` validates Supabase bearer tokens and uses the verified user ID to
+enforce thread ownership. Users can access only their own conversations, state,
+and runs. Graph definitions are shared and read-only; store access and other
+resource types are denied. Studio's alternative authentication path is disabled.
 
-Then run `pnpm install` and `pnpm dev` from `frontend/`, and open
-`http://localhost:3000`. No LangSmith API key is needed for local chat.
-The Mistral key stays in the backend. Both servers must be running.
+Google is the frontend's sign-in provider; the backend validates Supabase
+sessions independently of the identity provider. See the
+[Google/Supabase guide](../docs/google-auth.md) for details.
 
-## Google sign-in and private history
+Deep Agents uses a thread-scoped virtual filesystem and its built-in tools.
+No host filesystem, shell backend, custom skills, or cross-thread memory store
+is configured.
 
-Follow [Google/Supabase setup](../docs/google-auth.md) before chatting. The UI
-uses Supabase Auth with Google's OAuth provider and sends Supabase access tokens
-as `Authorization: Bearer ...` on streaming, history, and state requests.
-
-`app/auth.py` verifies tokens with the configured Supabase project's user
-endpoint. Its stable user ID owns each thread. Thread access rules remain
-server-side: other users cannot list, read, update, delete, or run your threads.
-Graph definitions are shared and read-only; stores and other resources are denied.
-The old fixed tokens are no longer accepted. Old unowned and Alice/Bob demo
-threads are not automatically migrated to Google accounts.
-
-Run unit tests without external services:
+## Checks
 
 ```bash
+uv run ruff check
 uv run pytest -q
 ```
 
-To run integration isolation tests against your server, supply fresh Supabase
-access tokens for two different users in `ISOLATION_TOKEN_A` and
-`ISOLATION_TOKEN_B`, then run:
+Unit tests run without external services. Live isolation tests require a running
+server and fresh Supabase access tokens for two different users, provided through
+`ISOLATION_TOKEN_A` and `ISOLATION_TOKEN_B`:
 
 ```bash
 ISOLATION_API_URL=http://localhost:2024 uv run pytest -q tests/test_isolation.py
 ```
 
-The integration tests skip if those variables are absent. They create and delete
-test threads without making model calls. Use Supabase access tokens, not Google
-provider tokens. Keep tokens out of Git and shared command transcripts.
-
-To compare approaches, open `http://localhost:3000/?assistantId=agent` for
-LangChain or `http://localhost:3000/?assistantId=deep_agent` for Deep Agents.
-Start a new conversation when switching agents. The UI manages thread IDs;
-continuing an existing thread restores its conversation state.
-
-Deep Agents retains its default virtual filesystem and built-in tools; no host
-filesystem, shell backend, custom skills, or cross-thread memory store is configured.
+Without these variables the integration tests skip. They create and delete test
+threads without making model calls.
 
 ## Standalone demos
 
@@ -85,5 +89,7 @@ uv run python -m app.agent
 uv run python -m app.deep_agent
 ```
 
-These run a two-turn memory example using a process-local `InMemorySaver`.
-Standalone memory is separate from the server's chat threads and is lost on exit.
+These run a two-turn memory example with process-local checkpointing, separate
+from the server's threads. Standalone memory is lost when the process exits.
+
+For browser chat and graph selection, see the [frontend README](../frontend/README.md).

@@ -64,13 +64,26 @@ history, and optional LangSmith tracing. The dedicated research archive is
 **planned, not implemented**. Its design is documented in the
 [SQLite recording plan](plans/chat-recording-sqlite.md).
 
+## Setup
+
+1. Configure Mistral and Google sign-in through Supabase using the
+   [shared service setup guide](docs/setup.md).
+2. Install, configure, and start the backend using the
+   [backend setup guide](backend/README.md).
+3. Install, configure, and start the chat interface using the
+   [frontend setup guide](frontend/README.md).
+4. If needed, enable [remote testing through ngrok](docs/setup.md#optional-ngrok-access)
+   and [LangSmith tracing](docs/setup.md#optional-langsmith-tracing).
+5. [Verify chat, sign-in, and conversation isolation](docs/setup.md#verify-the-whole-setup).
+
 ## Project layout and further documentation
 
 | Location | Contents |
 | --- | --- |
 | [backend/](backend/README.md) | Agent implementations, authentication, tests, and backend setup |
 | [frontend/](frontend/README.md) | Chat interface and frontend setup |
-| [docs/](docs/) | Integration documentation, including [Google sign-in setup](docs/google-auth.md) and [frontend upstream provenance](docs/frontend-upstream.md) |
+| [docs/](docs/) | [Shared service setup](docs/setup.md), [Google sign-in details](docs/google-auth.md), and supporting reference material |
 | [plans/](plans/) | Proposed features and implementation plans |
 
-Setup instructions live in the backend, frontend, and integration documentation.
+Additional references cover [frontend customization](docs/frontend-customization.md)
+and [frontend upstream provenance](docs/frontend-upstream.md).

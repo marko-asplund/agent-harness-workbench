@@ -1,5 +1,8 @@
 # Google sign-in with Supabase
 
+For a high-level overview covering all services, start with [service setup](setup.md).
+This page provides the detailed Google and Supabase configuration steps.
+
 The frontend and Agent Server run locally. A hosted Supabase project handles
 accounts and sessions; Google authenticates users. No chat messages are stored
 in Supabase by this integration. Chat state stays in Agent Server.

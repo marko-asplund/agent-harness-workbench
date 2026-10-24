@@ -1,171 +1,78 @@
-# Agent Chat UI
+# Frontend
 
-Agent Chat UI is a Next.js application which enables chatting with any LangGraph server with a `messages` key through a chat interface.
+A customized Agent Chat UI built with Next.js and React. It provides Google
+sign-in, streaming chat, and private conversation history for the backend agents.
 
-> [!NOTE]
-> 🎥 Watch the video setup guide [here](https://youtu.be/lInrwVnZ83o).
+## Prerequisites and configuration
 
-## Setup
+Use Node.js matching `.nvmrc` (22) and pnpm matching `package.json` (10.5.1).
+Complete the [shared service setup](../docs/setup.md) and start the
+[backend](../backend/README.md).
 
-From this repository's `frontend/` directory:
+From `frontend/`, install dependencies and create the environment file on first
+setup. Preserve an existing `.env.local` rather than replacing it:
 
 ```bash
 pnpm install
+cp .env.example .env.local
+```
+
+Configure these public values in `.env.local`:
+
+| Variable | Purpose |
+| --- | --- |
+| `NEXT_PUBLIC_API_URL` | Agent Server URL; locally `http://localhost:2024` |
+| `NEXT_PUBLIC_ASSISTANT_ID` | Default graph ID; normally `deep_agent` |
+| `NEXT_PUBLIC_SUPABASE_URL` | Same Supabase project used by the backend |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase publishable key |
+| `ALLOWED_DEV_ORIGINS` | Optional comma-separated development hostnames for tunnel access |
+
+For local-only access, set `NEXT_PUBLIC_API_URL=http://localhost:2024`.
+For access through a frontend tunnel, set
+`NEXT_PUBLIC_API_URL=https://YOUR_TUNNEL_HOST/agent-api` instead. The frontend
+forwards `/agent-api/*` to the backend on port 2024. See the
+[ngrok setup](../docs/setup.md#optional-ngrok-access).
+
+Browser configuration uses publishable values. Mistral/LangSmith API keys stay
+in the backend; the Google client secret stays in Supabase provider settings.
+
+## Run and use
+
+```bash
 pnpm dev
 ```
 
-Configure Supabase and Google first using [the setup guide](../docs/google-auth.md).
-The app runs at `http://localhost:3000` and expects Agent Server at the configured
-`NEXT_PUBLIC_API_URL`. This fork's authentication is configured locally; the
-upstream hosted Agent Chat UI does not contain this Google sign-in integration.
+Open `http://localhost:3000`, select **Sign in with Google**, and start a chat.
+Both frontend and backend must be running. Stop the frontend with Ctrl+C and
+restart after changing environment configuration.
 
-## Usage
+The UI shows your email and a sign-out button. Supabase manages session refresh;
+chat and history requests carry the user's bearer token. Account changes clear
+mounted chat state, and the backend enforces conversation ownership.
 
-This fork uses **Google sign-in through Supabase Auth**. Complete the
-[external setup guide](../docs/google-auth.md), start the backend, and click
-**Sign in with Google**. No LangSmith key or local test token is needed.
+Select a graph through the URL:
 
-The UI displays your email and provides a sign-out button. Sessions refresh
-automatically. History is private to the verified Supabase user ID; signing out
-or switching accounts clears mounted chat state. The backend enforces isolation.
+| URL parameter | Agent |
+| --- | --- |
+| `?assistantId=deep_agent` | Deep Agents |
+| `?assistantId=agent` | LangChain |
 
-Use `?assistantId=agent` or `?assistantId=deep_agent` to compare the two agents.
-The API destination is fixed by environment configuration, not URL parameters.
+Start a new conversation when switching agents. Reopening an existing thread
+restores its history for the signed-in owner. The API destination comes from
+environment configuration, not a URL parameter.
 
-## Environment Variables
+## Remote access and customization
 
-Set these in `frontend/.env.local` and restart `pnpm dev`:
+For ngrok, use the [remote access setup](../docs/setup.md#optional-ngrok-access).
+Next.js forwards `/agent-api/*` to the local backend while retaining the user's
+bearer token. There is no shared-key API proxy.
 
-```dotenv
-NEXT_PUBLIC_API_URL=http://localhost:2024
-NEXT_PUBLIC_ASSISTANT_ID=deep_agent
-NEXT_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=YOUR_PUBLISHABLE_KEY
+For UI development examples, see [frontend customization](../docs/frontend-customization.md).
+The imported version is recorded in [upstream provenance](../docs/frontend-upstream.md).
+
+## Checks
+
+```bash
+pnpm lint
+pnpm build
 ```
-
-These are public configuration values. Never put a Supabase secret/service-role
-key or Google client secret in a `NEXT_PUBLIC_` variable. The Google secret goes
-in Supabase's provider settings. This client uses PKCE with SDK-managed browser
-session storage and returns to `/` after OAuth; no callback route is required.
-
-## Hiding Messages in the Chat
-
-You can control the visibility of messages within the Agent Chat UI in two main ways:
-
-**1. Prevent Live Streaming:**
-
-To stop messages from being displayed _as they stream_ from an LLM call, add the `langsmith:nostream` tag to the chat model's configuration. The UI normally uses `on_chat_model_stream` events to render streaming messages; this tag prevents those events from being emitted for the tagged model.
-
-_Python Example:_
-
-```python
-from langchain_anthropic import ChatAnthropic
-
-# Add tags via the .with_config method
-model = ChatAnthropic().with_config(config={"tags": ["langsmith:nostream"]})
-```
-
-_TypeScript Example:_
-
-```typescript
-import { ChatAnthropic } from "@langchain/anthropic";
-
-const model = new ChatAnthropic()
-  // Add tags via the .withConfig method
-  .withConfig({ tags: ["langsmith:nostream"] });
-```
-
-**Note:** Even if streaming is hidden this way, the message will still appear after the LLM call completes if it's saved to the graph's state without further modification.
-
-**2. Hide Messages Permanently:**
-
-To ensure a message is _never_ displayed in the chat UI (neither during streaming nor after being saved to state), prefix its `id` field with `do-not-render-` _before_ adding it to the graph's state, along with adding the `langsmith:do-not-render` tag to the chat model's configuration. The UI explicitly filters out any message whose `id` starts with this prefix.
-
-_Python Example:_
-
-```python
-result = model.invoke([messages])
-# Prefix the ID before saving to state
-result.id = f"do-not-render-{result.id}"
-return {"messages": [result]}
-```
-
-_TypeScript Example:_
-
-```typescript
-const result = await model.invoke([messages]);
-// Prefix the ID before saving to state
-result.id = `do-not-render-${result.id}`;
-return { messages: [result] };
-```
-
-This approach guarantees the message remains completely hidden from the user interface.
-
-## Rendering Artifacts
-
-The Agent Chat UI supports rendering artifacts in the chat. Artifacts are rendered in a side panel to the right of the chat. To render an artifact, you can obtain the artifact context from the `thread.meta.artifact` field. Here's a sample utility hook for obtaining the artifact context:
-
-```tsx
-export function useArtifact<TContext = Record<string, unknown>>() {
-  type Component = (props: {
-    children: React.ReactNode;
-    title?: React.ReactNode;
-  }) => React.ReactNode;
-
-  type Context = TContext | undefined;
-
-  type Bag = {
-    open: boolean;
-    setOpen: (value: boolean | ((prev: boolean) => boolean)) => void;
-
-    context: Context;
-    setContext: (value: Context | ((prev: Context) => Context)) => void;
-  };
-
-  const thread = useStreamContext<
-    { messages: Message[]; ui: UIMessage[] },
-    { MetaType: { artifact: [Component, Bag] } }
-  >();
-
-  return thread.meta?.artifact;
-}
-```
-
-After which you can render additional content using the `Artifact` component from the `useArtifact` hook:
-
-```tsx
-import { useArtifact } from "../utils/use-artifact";
-import { LoaderIcon } from "lucide-react";
-
-export function Writer(props: {
-  title?: string;
-  content?: string;
-  description?: string;
-}) {
-  const [Artifact, { open, setOpen }] = useArtifact();
-
-  return (
-    <>
-      <div
-        onClick={() => setOpen(!open)}
-        className="cursor-pointer rounded-lg border p-4"
-      >
-        <p className="font-medium">{props.title}</p>
-        <p className="text-sm text-gray-500">{props.description}</p>
-      </div>
-
-      <Artifact title={props.title}>
-        <p className="whitespace-pre-wrap p-4">{props.content}</p>
-      </Artifact>
-    </>
-  );
-}
-```
-
-## Going to Production
-
-The current app connects directly to Agent Server using the signed-in user's
-Supabase access token. The upstream shared-LangSmith-key API passthrough has
-been removed. Use HTTPS and configure exact frontend origins and OAuth redirects
-for the deployed URLs. Keep Agent Server's custom auth enabled and use durable
-server storage for production histories. See [authentication setup](../docs/google-auth.md).
